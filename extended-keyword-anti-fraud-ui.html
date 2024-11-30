@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>進階AI防詐系統</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+        }
+        input, button, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result, #keywordList {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .keyword-category {
+            margin-bottom: 10px;
+        }
+        .keyword-category h3 {
+            margin-bottom: 5px;
+        }
+        .keyword-tag {
+            display: inline-block;
+            background-color: #e0e0e0;
+            padding: 2px 8px;
+            margin: 2px;
+            border-radius: 12px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>進階AI防詐系統</h1>
+        <input type="text" id="messageInput" placeholder="請輸入可疑訊息...">
+        <button onclick="analyzeMessage()">分析</button>
+        <div id="result"></div>
+        
+        <h2>關鍵詞列表</h2>
+        <div id="keywordList"></div>
+        
+        <h2>添加新關鍵詞</h2>
+        <input type="text" id="newKeyword" placeholder="新關鍵詞">
+        <input type="text" id="keywordCategory" placeholder="類別">
+        <input type="number" id="keywordWeight" placeholder="權重 (1-10)" min="1" max="10">
+        <button onclick="addKeyword()">添加關鍵詞</button>
+    </div>
+
+    <script>
+        const keywordCategories = {
+            banking: { name: "銀行詐騙", keywords: [
+                { word: "緊急轉帳", weight: 8 },
+                { word: "系統升級", weight: 5 },
+                { word: "帳戶異常", weight: 7 },
+                { word: "銀行職員", weight: 6 }
+            ]},
+            investment: { name: "投資詐騙", keywords: [
+                { word: "高回報", weight: 7 },
+                { word: "穩賺不賠", weight: 9 },
+                { word: "內部消息", weight: 8 },
+                { word: "限時優惠", weight: 6 }
+            ]},
+            lottery: { name: "中獎詐騙", keywords: [
+                { word: "中大獎", weight: 7 },
+                { word: "領獎手續費", weight: 9 },
+                { word: "海外中獎", weight: 8 },
+                { word: "保密中獎", weight: 7 }
+            ]},
+            personal: { name: "個人信息詐騙", keywords: [
+                { word: "身份驗證", weight: 6 },
+                { word: "個人資料更新", weight: 7 },
+                { word: "安全碼", weight: 8 },
+                { word: "帳號異常", weight: 7 }
+            ]}
+        };
+
+        function displayKeywords() {
+            const keywordListDiv = document.getElementById('keywordList');
+            keywordListDiv.innerHTML = '';
+            
+            for (const category in keywordCategories) {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'keyword-category';
+                categoryDiv.innerHTML = `<h3>${keywordCategories[category].name}</h3>`;
+                
+                keywordCategories[category].keywords.forEach(keyword => {
+                    const keywordSpan = document.createElement('span');
+                    keywordSpan.className = 'keyword-tag';
+                    keywordSpan.textContent = `${keyword.word} (${keyword.weight})`;
+                    categoryDiv.appendChild(keywordSpan);
+                });
+                
+                keywordListDiv.appendChild(categoryDiv);
+            }
+        }
+
+        function addKeyword() {
+            const newKeyword = document.getElementById('newKeyword').value;
+            const category = document.getElementById('keywordCategory').value;
+            const weight = parseInt(document.getElementById('keywordWeight').value);
+
+            if (newKeyword && category && weight) {
+                if (!keywordCategories[category]) {
+                    keywordCategories[category] = { name: category, keywords: [] };
+                }
+                keywordCategories[category].keywords.push({ word: newKeyword, weight: weight });
+                displayKeywords();
+                document.getElementById('newKeyword').value = '';
+                document.getElementById('keywordCategory').value = '';
+                document.getElementById('keywordWeight').value = '';
+            } else {
+                alert('請填寫所有欄位');
+            }
+        }
+
+        function analyzeMessage() {
+            const input = document.getElementById('messageInput').value;
+            const resultDiv = document.getElementById('result');
+            
+            let totalWeight = 0;
+            let detectedKeywords = [];
+            
+            for (const category in keywordCategories) {
+                keywordCategories[category].keywords.forEach(keyword => {
+                    if (input.includes(keyword.word)) {
+                        totalWeight += keyword.weight;
+                        detectedKeywords.push(`${keyword.word} (${keyword.weight})`);
+                    }
+                });
+            }
+            
+            let riskLevel = '低';
+            if (totalWeight > 20) riskLevel = '高';
+            else if (totalWeight > 10) riskLevel = '中';
+            
+            const explanation = detectedKeywords.length > 0 
+                ? `檢測到 ${detectedKeywords.length} 個可疑關鍵詞：${detectedKeywords.join('、')}`
+                : '未檢測到明顯風險';
+            
+            resultDiv.innerHTML = `
+                <h3>分析結果</h3>
+                <p>風險等級：<strong>${riskLevel}</strong></p>
+                <p>總權重：${totalWeight}</p>
+                <p>${explanation}</p>
+                <p>提醒：如有疑慮，請撥打165反詐騙專線</p>
+            `;
+        }
+
+        // 初始顯示關鍵詞列表
+        displayKeywords();
+    </script>
+</body>
+</html>
